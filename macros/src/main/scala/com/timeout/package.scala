@@ -1,10 +1,12 @@
 package com
 
 package object timeout {
-  case class PropertyType(namespace: String, name: String, properties: List[Property])
+  type Namespace = String
+  case class PropertyType(namespace: Namespace, name: String, properties: List[Property])
 
   sealed trait AwsType
   sealed trait PrimitiveType extends AwsType
+  case object TagType extends AwsType
   case class PropertyTypeRef(namespace: String, name: String) extends AwsType
 
   object PrimitiveType {

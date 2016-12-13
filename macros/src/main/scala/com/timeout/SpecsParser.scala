@@ -10,7 +10,7 @@ import cats.instances.list._
 import scala.io.Source
 import scala.language.implicitConversions
 
-object SpecsParser extends App {
+object SpecsParser {
   implicit private val decodePrimitiveType = new Decoder[PrimitiveType] {
     override def apply(c: HCursor): Result[PrimitiveType] =
       c.as[String].flatMap { s =>
@@ -32,10 +32,16 @@ object SpecsParser extends App {
     }
   }
 
-  private def decodePropertyTypeRefProperty(namespace: String, name: String): Decoder[Property] = new Decoder[Property] {
+  private implicit val decodeTag = Decoder.instance[TagType.type] { c =>
+    c.as[String].ensure(DecodingFailure("Expected the string Tag", c.history))(_ == "Tag").map(_ => TagType)
+  }
+
+  private def decodePropertyTypeRefOrTagProperty(namespace: String, name: String): Decoder[Property] = new Decoder[Property] {
     override def apply(c: HCursor): Result[Property] = {
       for {
         typeRef <- c.get[PropertyTypeRef]("Type")(decodePropertyTypeRef(namespace))
+                    .map(identity[AwsType])
+                    .orElse(c.get[TagType.type]("Type"))
         required <- c.get[Boolean]("Required")
       } yield Property(name, typeRef, required = required)
     }
@@ -45,7 +51,7 @@ object SpecsParser extends App {
     override def apply(c: HCursor): Result[List[Property]] =
       c.focus.asObject.getOrElse(throw new Exception(s"Expected property to be an object at ${c.history}"))
         .toMap.toList.traverse[Result, Property] { case (name, json) =>
-          val decoder = decodePrimitiveTypeProperty(name) or decodePropertyTypeRefProperty(namespace, name)
+          val decoder = decodePrimitiveTypeProperty(name) or decodePropertyTypeRefOrTagProperty(namespace, name)
           decoder.decodeJson(json)
       }
   }
@@ -92,6 +98,8 @@ object SpecsParser extends App {
   val resourceTypes: List[ResourceType] = parser.decode[List[ResourceType]](string).valueOr(err =>
     throw new Exception(s"Failed while parsing the cloud formation specs: $err"))
 
-  val propertyTypes: List[PropertyType] = parser.decode[List[PropertyType]](string).valueOr(err =>
-    throw new Exception(s"Failed while parsing the cloud formation specs: $err"))
+  val propertyTypes: Map[Namespace, List[PropertyType]] =
+    parser.decode[List[PropertyType]](string)
+      .valueOr(err => throw new Exception(s"Failed while parsing the cloud formation specs: $err"))
+      .groupBy(_.namespace)
 }
