@@ -19,7 +19,7 @@ import cfresources._
 class cfresources extends scala.annotation.StaticAnnotation {
   inline def apply(defn: Any): Any = meta {
     defn match {
-      case q"object $name {..$stats}" =>
+      case q"object $_ {..$_}" =>
         val imports = immutable.Seq(
           q"import java.time.ZonedDateTime",
           q"import io.circe.Json"
@@ -27,8 +27,8 @@ class cfresources extends scala.annotation.StaticAnnotation {
         val stats = SpecsParser.resourceTypes.map { rt =>
           val className = Type.Name(s"`${rt.fqn}`")
 
-          val properties = rt.properties.collect { case Property(name, Some(primitiveType), required) =>
-            val paramName = Term.Name(name)
+          val properties = rt.properties.collect { case Property(n, primitiveType: PrimitiveType, required) =>
+            val paramName = Term.Name(n)
             val typeName = cfToScalaType(primitiveType)
             if (required) {
               param"$paramName: $typeName"

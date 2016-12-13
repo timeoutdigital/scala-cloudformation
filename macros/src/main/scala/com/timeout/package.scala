@@ -1,7 +1,11 @@
 package com
 
 package object timeout {
-  sealed trait PrimitiveType
+  case class PropertyType(namespace: String, name: String, properties: List[Property])
+
+  sealed trait AwsType
+  sealed trait PrimitiveType extends AwsType
+  case class PropertyTypeRef(namespace: String, name: String) extends AwsType
 
   object PrimitiveType {
     case object String extends PrimitiveType
@@ -17,13 +21,13 @@ package object timeout {
 
   case class Property(
     name: String,
-    primitiveType: Option[PrimitiveType],
+    awsType: AwsType,
     required: Boolean
   )
-
-  case class ResourceType(fqn: String, properties: List[Property])
 
   trait Resource {
     def name: String
   }
+
+  case class ResourceType(fqn: String, properties: List[Property])
 }
