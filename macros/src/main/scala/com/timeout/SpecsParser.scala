@@ -13,7 +13,7 @@ import cats.instances.list._
 import scala.io.Source
 import scala.language.implicitConversions
 
-object SpecsParser extends App {
+object SpecsParser {
   implicit val decodePrimitiveType = new Decoder[PrimitiveType] {
     override def apply(c: HCursor): Result[PrimitiveType] =
       c.as[String].flatMap { s =>
@@ -49,7 +49,8 @@ object SpecsParser extends App {
       }
   }
 
-  val stream = getClass.getResourceAsStream("/cf-specs.json")
-  val string = Source.fromInputStream(stream).mkString
-  println(parser.decode[List[ResourceType]](string))
+  private val stream = getClass.getResourceAsStream("/cf-specs.json")
+
+  private val string = Source.fromInputStream(stream).mkString
+  val resourceTypes = parser.decode[List[ResourceType]](string).valueOr(err => throw new Exception(s"Failed while parsing the cloud formation specs: $err"))
 }
