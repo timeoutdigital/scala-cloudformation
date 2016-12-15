@@ -8,6 +8,8 @@ package object timeout {
   sealed trait PrimitiveType extends AwsType
   case object TagType extends AwsType
   case class PropertyTypeRef(namespace: String, name: String) extends AwsType
+  case class ListType(awsType: AwsType) extends AwsType
+  case class MapType(awsType: AwsType) extends AwsType
 
   object PrimitiveType {
     case object String extends PrimitiveType

@@ -5,7 +5,7 @@ import scala.meta.Term
 import scala.meta._
 
 object CloudformationGen {
-  def cfToScalaType(primitiveType: PrimitiveType): Type.Name = primitiveType match {
+  def mapPrimitiveType(primitiveType: PrimitiveType): Type.Name = primitiveType match {
     case PrimitiveType.String => Type.Name("String")
     case PrimitiveType.Long => Type.Name("Long")
     case PrimitiveType.Integer => Type.Name("Int")
@@ -13,6 +13,22 @@ object CloudformationGen {
     case PrimitiveType.Boolean => Type.Name("Boolean")
     case PrimitiveType.Timestamp => Type.Name("java.time.ZonedDateTime")
     case PrimitiveType.Json => Type.Name("io.circe.Json")
+  }
+
+  def mapAwsType(namespace: Option[Namespace])(awsType: AwsType): Type = awsType match {
+    case p: PrimitiveType =>
+      mapPrimitiveType(p)
+    case TagType =>
+      Type.Name("Tag")
+    case PropertyTypeRef(_, name) =>
+      val fqn = namespace.fold(name) { ns: String => s"$ns.$name" }
+      Type.Name(fqn)
+    case ListType(itemType) =>
+      val typeName = mapAwsType(namespace)(itemType)
+      t"List[$typeName]"
+    case MapType(itemType) =>
+      val typeName = mapAwsType(namespace)(itemType)
+      t"Map[String, $typeName]"
   }
 
   def normalize(str: String): String =
@@ -25,7 +41,7 @@ object CloudformationGen {
       val classDefs = props.map { prop =>
         val className = Type.Name(prop.name)
 
-        val properties = prop.properties.map(mkField(_, None)).collect { case Some(p) => p }
+        val properties = prop.properties.map(mkField(_, None))
 
         q"case class $className (..$properties)"
       }
@@ -41,7 +57,7 @@ object CloudformationGen {
       val className = Type.Name(normalize(rt.fqn))
 
       val namespace = normalize(rt.fqn.takeWhile(_ != "."))
-      val properties = rt.properties.map(mkField(_, Some(namespace))).collect { case Some(p) => p }
+      val properties = rt.properties.map(mkField(_, Some(namespace)))
       val fqn = Term.Name("\"" + rt.fqn + "\"")
 
       q"""case class $className (..$properties) extends Resource {
@@ -50,30 +66,16 @@ object CloudformationGen {
        """
     }
 
-  // TODO this returns an option until list and map types are implemented
-  private def mkField(property: Property, namespace: Option[Namespace]): Option[Term.Param] = {
-    property.awsType match {
-      case PropertyTypeRef(_, "List") | PropertyTypeRef(_, "Map") => None
-      case _ =>
-        val paramName = Term.Name(property.name)
+  private def mkField(property: Property, namespace: Option[Namespace]): Term.Param = {
+    val paramName = Term.Name(property.name)
 
-        val typeName = property.awsType match {
-          case p: PrimitiveType => cfToScalaType(p)
-          case TagType => Type.Name("Tag")
-          case PropertyTypeRef(_, name) =>
-            val fqn = namespace.fold(name) { ns => s"$ns.$name" }
-            Type.Name(fqn)
-        }
+    val typeName = mapAwsType(namespace)(property.awsType)
 
-        val param = if (property.required) {
-          param"$paramName: $typeName"
-        } else {
-          param"$paramName: Option[$typeName]"
-        }
-
-        Some(param)
+    if (property.required) {
+      param"$paramName: $typeName"
+    } else {
+      param"$paramName: Option[$typeName]"
     }
-
   }
 }
 import CloudformationGen._
@@ -94,7 +96,9 @@ class CloudformationGen extends scala.annotation.StaticAnnotation {
           }
         """)
 
-        q"..${imports ++ resourceTrait ++ propertyStats ++ resourceStats}"
+        val tagType = List(q"case class Tag(key: String, value: String)")
+
+        q"..${imports ++ resourceTrait ++ tagType ++ propertyStats ++ resourceStats}"
       case _ =>
         abort("@cf-resources must be used on an object")
     }
