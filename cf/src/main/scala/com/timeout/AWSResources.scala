@@ -1,6 +1,6 @@
 package com.timeout
 
-object Resources {
+object AWSResources {
   @CloudformationGen
   object Gen
 }

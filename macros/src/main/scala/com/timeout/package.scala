@@ -27,9 +27,5 @@ package object timeout {
     required: Boolean
   )
 
-  trait Resource {
-    def name: String
-  }
-
   case class ResourceType(fqn: String, properties: List[Property])
 }

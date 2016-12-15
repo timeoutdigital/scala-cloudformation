@@ -18,8 +18,14 @@ libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
   val targetFile = (resourceManaged in Compile).value / "cf-specs.json"
 
   if (!targetFile.exists) {
-    println("Getting specifications from AWS...")
-    IO.download(new URL("https://d3teyb21fexa9r.cloudfront.net/latest/CloudFormationResourceSpecification.json"), targetFile)
+    val temp = System.getProperty("java.io.tmpdir")
+    val tempFile = new File(s"$temp/cf-specs.json")
+    // Having a cache outside of the project is handy when using `sbt clean` often
+    if (!tempFile.exists) {
+      println("Getting specifications from AWS...")
+      IO.download(new URL("https://d3teyb21fexa9r.cloudfront.net/latest/CloudFormationResourceSpecification.json"), tempFile)
+    }
+    IO.copyFile(tempFile, targetFile)
   }
 
   Seq(targetFile)
