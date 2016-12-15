@@ -3,9 +3,9 @@ val circeVersion = "0.6.1"
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % scalaVersion.value
 )++ Seq(
-"io.circe" %% "circe-core",
-"io.circe" %% "circe-generic",
-"io.circe" %% "circe-parser"
+  "io.circe" %% "circe-core",
+  "io.circe" %% "circe-generic",
+  "io.circe" %% "circe-parser"
 ).map(_ % circeVersion) ++
 Seq("org.scalameta" % "scalameta_2.11" % "1.4.0")
 

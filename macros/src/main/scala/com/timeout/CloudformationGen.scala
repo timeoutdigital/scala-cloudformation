@@ -5,7 +5,7 @@ import scala.meta.Defn
 import scala.meta.Term
 import scala.meta._
 
-object cfresources {
+object CloudformationGen {
   def cfToScalaType(primitiveType: PrimitiveType): Type.Name = primitiveType match {
     case PrimitiveType.String => Type.Name("String")
     case PrimitiveType.Long => Type.Name("Long")
@@ -70,9 +70,9 @@ object cfresources {
 
   }
 }
-import cfresources._
+import CloudformationGen._
 
-class cfresources extends scala.annotation.StaticAnnotation {
+class CloudformationGen extends scala.annotation.StaticAnnotation {
 
   inline def apply(defn: Any): Any = meta {
     defn match {

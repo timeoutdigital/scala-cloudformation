@@ -1,4 +1,4 @@
-name := "scala-cf"
+name := "scala-cloudformation"
 
 version := "1.0.0"
 
