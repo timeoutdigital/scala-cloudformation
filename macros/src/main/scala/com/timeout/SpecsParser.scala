@@ -18,9 +18,25 @@ object SpecsParser {
       }
   }
 
-  private def decodePropertyTypeRef(namespace: String): Decoder[PropertyTypeRef] = new Decoder[PropertyTypeRef] {
-    override def apply(c: HCursor): Result[PropertyTypeRef] =
-      c.as[String].map(PropertyTypeRef(namespace, _))
+  private def decodeListType(namespace: String): Decoder[ListType] = Decoder.instance[ListType] { c =>
+    for {
+      _ <- c.get[String]("Type").ensure(DecodingFailure(s"Not a List", c.history))(_ == "List")
+      itemType <- c.get[PrimitiveType]("PrimitiveItemType")(decodePrimitiveType).map(identity[AwsType]) orElse c.as[AwsType](decodeAwsType(namespace, "ItemType"))
+    } yield ListType(itemType)
+  }
+
+  private def decodeMapType(namespace: String): Decoder[MapType] = Decoder.instance[MapType] { c =>
+    for {
+      _ <- c.get[String]("Type").ensure(DecodingFailure(s"Not a Map", c.history))(_ == "Map")
+      itemType <- c.get[PrimitiveType]("PrimitiveItemType")(decodePrimitiveType).map(identity[AwsType]) orElse c.as[AwsType](decodeAwsType(namespace, "ItemType"))
+    } yield MapType(itemType)
+  }
+
+  private def decodePropertyTypeRef(namespace: Namespace): Decoder[PropertyTypeRef] = Decoder.instance[PropertyTypeRef] { c =>
+      c.as[String]
+        .ensure(DecodingFailure(s"Should not be a List, a Map or a Tag: ${c.as[String]}", c.history)) { s =>
+          !Set("List", "Map").contains(s)
+        }.map(PropertyTypeRef(namespace, _))
   }
 
   private def decodePrimitiveTypeProperty(name: String): Decoder[Property] = new Decoder[Property] {
@@ -36,22 +52,25 @@ object SpecsParser {
     c.as[String].ensure(DecodingFailure("Expected the string Tag", c.history))(_ == "Tag").map(_ => TagType)
   }
 
-  private def decodePropertyTypeRefOrTagProperty(namespace: String, name: String): Decoder[Property] = new Decoder[Property] {
-    override def apply(c: HCursor): Result[Property] = {
-      for {
-        typeRef <- c.get[PropertyTypeRef]("Type")(decodePropertyTypeRef(namespace))
-                    .map(identity[AwsType])
-                    .orElse(c.get[TagType.type]("Type"))
-        required <- c.get[Boolean]("Required")
-      } yield Property(name, typeRef, required = required)
-    }
+  private def decodeAwsType(namespace: Namespace, key: String): Decoder[AwsType] = Decoder.instance[AwsType] { c =>
+    c.get[TagType.type](key)(decodeTag).map(identity[AwsType]) orElse
+      c.get[PropertyTypeRef](key)(decodePropertyTypeRef(namespace)).map(identity[AwsType]) orElse
+    c.as[AwsType](decodeListType(namespace).map(identity[AwsType])) orElse
+      c.as[AwsType](decodeMapType(namespace).map(identity[AwsType]))
+  }
+
+  private def decodeAwsProperty(namespace: Namespace, name: String): Decoder[Property] = Decoder.instance[Property] { c =>
+    for {
+      awsType <- c.as[AwsType](decodeAwsType(namespace, "Type"))
+      required <- c.get[Boolean]("Required")
+    } yield Property(name, awsType, required = required)
   }
 
   private def decodeProperties(namespace: String) = new Decoder[List[Property]] {
     override def apply(c: HCursor): Result[List[Property]] =
       c.focus.asObject.getOrElse(throw new Exception(s"Expected property to be an object at ${c.history}"))
         .toMap.toList.traverse[Result, Property] { case (name, json) =>
-          val decoder = decodePrimitiveTypeProperty(name) or decodePropertyTypeRefOrTagProperty(namespace, name)
+          val decoder = decodePrimitiveTypeProperty(name) or decodeAwsProperty(namespace, name)
           decoder.decodeJson(json)
       }
   }
