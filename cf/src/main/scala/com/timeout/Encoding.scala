@@ -23,6 +23,7 @@ object Encoding {
 
   implicit def encodeCfExp[T](implicit ev: Encoder[Lit[T]]): Encoder[CfExp[T]] = Encoder.instance[CfExp[T]] {
     case l: Lit[T] => l.asJson
+    case FnBase64(exp) => Json.obj("Fn::Base64" -> exp.asJson)
   }
 
   implicit val encodeHNil: ObjectEncoder[HNil] =

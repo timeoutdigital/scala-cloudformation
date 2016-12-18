@@ -18,4 +18,6 @@ object CfExp {
   case class LitTimestamp(value: ZonedDateTime) extends Lit[ZonedDateTime]
   case class LitJson(value: Json) extends Lit[Json]
 //  case class Ref(exp: CFExp) extends CFExp
+
+  case class FnBase64(exp: CfExp[String]) extends CfExp[String]
 }
