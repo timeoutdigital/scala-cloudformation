@@ -13,13 +13,13 @@ libraryDependencies += "org.scala-lang" % "scala-reflect"  % scalaVersion.value
 
 libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 
-
 (resourceGenerators in Compile) += Def.task {
   val targetFile = (resourceManaged in Compile).value / "cf-specs.json"
 
   if (!targetFile.exists) {
     val temp = System.getProperty("java.io.tmpdir")
     val tempFile = new File(s"$temp/cf-specs.json")
+    println(s"Trying to get specs file from $tempFile")
     // Having a cache outside of the project is handy when using `sbt clean` often
     if (!tempFile.exists) {
       println("Getting specifications from AWS...")

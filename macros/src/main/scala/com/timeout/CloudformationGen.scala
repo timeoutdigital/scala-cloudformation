@@ -34,9 +34,11 @@ object CloudformationGen {
   def normalize(str: String): String =
     str.filter(_.isLetterOrDigit)
 
-  val propertyStats: List[Defn.Object] =
+  // Contains custom properties and generic derivations
+  val objectStats: List[Defn.Object] =
     SpecsParser.propertyTypes.toList.map { case (namespace, props) =>
       val objectName = Term.Name(normalize(namespace))
+      val typeName = Type.Name(normalize(namespace))
 
       val classDefs = props.map { prop =>
         val className = Type.Name(prop.name)
@@ -46,24 +48,33 @@ object CloudformationGen {
         q"case class $className (..$properties)"
       }
 
+      val generic =
+        q"implicit val generic = LabelledGeneric[$typeName]"
+
       q"""object $objectName {
             ..$classDefs
+            $generic
          }
        """
     }
 
-  val resourceStats: List[Defn.Class] =
+  val classStats: List[Defn] =
     SpecsParser.resourceTypes.map { rt =>
-      val className = Type.Name(normalize(rt.fqn))
+      val normalized = normalize(rt.fqn)
+      val typeName = Type.Name(normalized)
 
       val namespace = normalize(rt.fqn.takeWhile(_ != "."))
-      val properties = rt.properties.map(mkField(_, Some(namespace)))
+      val logicalIdProp: Term.Param = param"logicalId: String"
+      val properties = logicalIdProp :: rt.properties.map(mkField(_, Some(namespace)))
       val fqn = Term.Name("\"" + rt.fqn + "\"")
 
-      q"""case class $className (..$properties) extends Resource {
+      val declaration = q"""case class $typeName (..$properties) extends Resource {
             override def fqn: String = $fqn
          }
        """
+
+
+       declaration
     }
 
   private def mkField(property: Property, namespace: Option[Namespace]): Term.Param = {
@@ -72,9 +83,9 @@ object CloudformationGen {
     val typeName = mapAwsType(namespace)(property.awsType)
 
     if (property.required) {
-      param"$paramName: $typeName"
+      param"$paramName: CfExp[$typeName]"
     } else {
-      param"$paramName: Option[$typeName]"
+      param"$paramName: Option[CfExp[$typeName]]"
     }
   }
 }
@@ -85,20 +96,7 @@ class CloudformationGen extends scala.annotation.StaticAnnotation {
   inline def apply(defn: Any): Any = meta {
     defn match {
       case q"object $_ {..$_}" =>
-        val imports = List(
-          q"import java.time.ZonedDateTime",
-          q"import io.circe.Json"
-        )
-
-        val resourceTrait = List(q"""
-          trait Resource {
-            def fqn: String
-          }
-        """)
-
-        val tagType = List(q"case class Tag(key: String, value: String)")
-
-        q"..${imports ++ resourceTrait ++ tagType ++ propertyStats ++ resourceStats}"
+        q"..${objectStats ++ classStats}"
       case _ =>
         abort("@cf-resources must be used on an object")
     }
