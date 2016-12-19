@@ -1,6 +1,6 @@
 scalaVersion := "2.11.8"
 
-val circeVersion = "0.6.1"
+val circeVersion = "0.7.0-M1"
 
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core",

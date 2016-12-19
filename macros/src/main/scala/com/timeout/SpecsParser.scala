@@ -68,7 +68,7 @@ object SpecsParser {
 
   private def decodeProperties(namespace: String) = new Decoder[List[Property]] {
     override def apply(c: HCursor): Result[List[Property]] =
-      c.focus.asObject.getOrElse(throw new Exception(s"Expected property to be an object at ${c.history}"))
+      c.focus.flatMap(_.asObject).getOrElse(throw new Exception(s"Expected property to be an object at ${c.history}"))
         .toMap.toList.traverse[Result, Property] { case (name, json) =>
           val decoder = decodePrimitiveTypeProperty(name) or decodeAwsProperty(namespace, name)
           decoder.decodeJson(json)

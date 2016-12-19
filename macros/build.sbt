@@ -1,4 +1,4 @@
-val circeVersion = "0.6.1"
+val circeVersion = "0.7.0-M1"
 
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % scalaVersion.value
