@@ -1,10 +1,6 @@
-name := "scala-cf"
-
-version := "1.0.0"
-
 scalaVersion := "2.11.8"
 
-val circeVersion = "0.6.1"
+val circeVersion = "0.7.0-M1"
 
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core",
@@ -34,11 +30,16 @@ lazy val commonSettings = Seq(
 lazy val macros = (project in file("macros")).
   settings(commonSettings: _*)
 
-lazy val cf = (project in file("cf")).
+lazy val expand = (project in file("expand")).
   settings(commonSettings: _*).
   dependsOn(macros)
 
+
+lazy val cf = (project in file("cf")).
+  settings(commonSettings: _*).
+  dependsOn(macros, expand)
+
 lazy val root =
   (project in file(".")).
-    aggregate(macros, cf)
+    aggregate(macros, expand, cf)
 
