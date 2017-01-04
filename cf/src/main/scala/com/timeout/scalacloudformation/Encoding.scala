@@ -35,6 +35,10 @@ object Encoding {
       Json.obj("Fn::Not" -> List(cond).asJson) // weird but correct according to the doc
     case FnOr(conds@_*) =>
       Json.obj("Fn::Or" -> conds.asJson)
+    case ResourceRef(resource) =>
+      Json.obj("Ref" -> Json.fromString(resource.logicalId))
+    case PseudoParameterRef(param) =>
+      Json.obj("Ref" -> Json.fromString(param.toString))
     case x =>
       throw new Exception(s"Unexpected expression $x")
   }

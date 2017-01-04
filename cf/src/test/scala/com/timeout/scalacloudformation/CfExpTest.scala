@@ -115,4 +115,46 @@ class CfExpTest extends FreeSpec with Matchers {
 
     Right(actual) should ===(expJson)
   }
+
+  "Resource Ref is handled" in {
+    val resource = TestResource("referenced", LitString("foo"))
+
+    val actual = TestResource("ID", ResourceRef(resource)).asJson
+
+    val expJson = parse(
+      """
+        |{
+        |  "ID" : {
+        |    "Type" : "AWS::Test::TestResource",
+        |    "Properties" : {
+        |      "foo" : {
+        |        "Ref" : "referenced"
+        |      }
+        |    }
+        |  }
+        |}
+      """.stripMargin)
+
+    Right(actual) should ===(expJson)
+  }
+
+  "Pseudo Parameter Ref is handled" in {
+    val actual = TestResource("ID", PseudoParameterRef(PseudoParameter.AccountId)).asJson
+
+    val expJson = parse(
+      """
+        |{
+        |  "ID" : {
+        |    "Type" : "AWS::Test::TestResource",
+        |    "Properties" : {
+        |      "foo" : {
+        |        "Ref" : "AWS::AccountId"
+        |      }
+        |    }
+        |  }
+        |}
+      """.stripMargin)
+
+    Right(actual) should ===(expJson)
+  }
 }

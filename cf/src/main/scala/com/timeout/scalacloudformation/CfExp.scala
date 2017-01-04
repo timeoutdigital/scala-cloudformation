@@ -2,7 +2,7 @@ package com.timeout.scalacloudformation
 
 import java.time.ZonedDateTime
 
-import com.timeout.scalacloudformation.AWSResources.CfExp
+import com.timeout.scalacloudformation.AWSResources.{CfExp, Resource}
 import io.circe.Json
 
 object CfExp {
@@ -17,7 +17,14 @@ object CfExp {
   case class LitBoolean(value: Boolean) extends Lit[Boolean]
   case class LitTimestamp(value: ZonedDateTime) extends Lit[ZonedDateTime]
   case class LitJson(value: Json) extends Lit[Json]
-//  case class Ref(exp: CFExp) extends CFExp
+
+  /** The return value for ref depends on the resource
+    * All these return types could be typed better (e.g. IP address VS URL)
+    * but they are all treated as String.
+    * For a more refined behaviour, it seems reasonable to use type members instead
+    */
+  case class ResourceRef(value: Resource) extends E[String]
+  case class PseudoParameterRef(value: PseudoParameter) extends E[String]
 
   case class FnBase64(exp: E[String]) extends E[String]
 
