@@ -3,7 +3,7 @@ package com.timeout.scalacloudformation
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-import com.timeout.scalacloudformation.AWSResources.Resource
+import com.timeout.scalacloudformation.AWSResources.{CfExp, Resource}
 import com.timeout.scalacloudformation.CfExp._
 import io.circe.syntax._
 import io.circe.{Encoder, Json, JsonObject, ObjectEncoder}

@@ -30,11 +30,16 @@ lazy val commonSettings = Seq(
 lazy val macros = (project in file("macros")).
   settings(commonSettings: _*)
 
-lazy val cf = (project in file("cf")).
+lazy val expand = (project in file("expand")).
   settings(commonSettings: _*).
   dependsOn(macros)
 
+
+lazy val cf = (project in file("cf")).
+  settings(commonSettings: _*).
+  dependsOn(macros, expand)
+
 lazy val root =
   (project in file(".")).
-    aggregate(macros, cf)
+    aggregate(macros, expand, cf)
 

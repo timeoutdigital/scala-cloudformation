@@ -1,6 +1,6 @@
 package com.timeout.scalacloudformation
 
-import com.timeout.scalacloudformation.AWSResources.Resource
+import com.timeout.scalacloudformation.AWSResources.{CfExp, Resource}
 import com.timeout.scalacloudformation.CfExp._
 import io.circe.parser._
 import io.circe.syntax._
