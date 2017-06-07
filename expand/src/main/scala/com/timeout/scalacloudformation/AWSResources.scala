@@ -14,6 +14,6 @@ object AWSResources {
 
   case class Tag(key: String, value: String)
 
-  @CloudformationGen("AWS::Cognito")
+  @CloudformationGen()
   object Gen
 }

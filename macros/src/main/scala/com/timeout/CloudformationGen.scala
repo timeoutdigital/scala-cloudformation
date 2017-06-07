@@ -6,17 +6,7 @@ import scala.meta._
 
 class CloudformationGen extends scala.annotation.StaticAnnotation {
   inline def apply(defn: Any): Any = meta {
-
-    val prefixes = this match {
-      case q"new $_($arg)" =>
-        val prefixes = arg.collect { case Lit(s: String) => s }.toSet
-        System.err.println(s"Excluding AWS resource prefixes: ${prefixes.mkString(", ")}")
-        prefixes
-      case _ =>
-        Set.empty[String]
-    }
-
-    val gen = new CodeGen(Config(excludePrefixes = prefixes))
+    val gen = new CodeGen(Config(excludePrefixes = Set("AWS::Cognito")))
 
     defn match {
       case q"object $_ {..$_}" =>
