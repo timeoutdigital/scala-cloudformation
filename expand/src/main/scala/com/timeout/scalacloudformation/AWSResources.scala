@@ -1,19 +1,13 @@
 package com.timeout.scalacloudformation
 
 import com.timeout.CloudformationGen
-import shapeless._
+import io.circe.Encoder
+import io.circe.generic.semiauto._
+import io.circe.Json
+import io.circe.syntax._
+import Encoding._
 
 object AWSResources {
-
-  trait CfExp[+T]
-
-  trait Resource {
-    def fqn: String
-    def logicalId: String
-  }
-
-  case class Tag(key: String, value: String)
-
   @CloudformationGen()
   object Gen
 }

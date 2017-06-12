@@ -2,11 +2,13 @@ package com.timeout.scalacloudformation
 
 import java.time.ZonedDateTime
 
-import com.timeout.scalacloudformation.AWSResources.{CfExp, Resource}
 import io.circe.Json
+
+trait CfExp[+T]
 
 object CfExp {
   type E[+T] = CfExp[T]
+
   sealed trait Lit[+T] extends E[T] {
     def value: T
   }

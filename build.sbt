@@ -26,18 +26,18 @@ lazy val commonSettings = Seq(
   addCompilerPlugin("org.scalameta" % "paradise_2.11.8" % "3.0.0-M5")
 )
 
+lazy val cf = (project in file("cf")).
+  settings(commonSettings: _*)
 
 lazy val macros = (project in file("macros")).
-  settings(commonSettings: _*)
+  settings(commonSettings: _*).
+  dependsOn(cf)
+
 
 lazy val expand = (project in file("expand")).
   settings(commonSettings: _*).
   dependsOn(macros)
 
-
-lazy val cf = (project in file("cf")).
-  settings(commonSettings: _*).
-  dependsOn(macros, expand)
 
 lazy val root =
   (project in file(".")).

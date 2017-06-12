@@ -1,16 +1,25 @@
 package com.timeout.scalacloudformation
 
-import com.timeout.scalacloudformation.AWSResources.{CfExp, Resource}
 import com.timeout.scalacloudformation.CfExp._
 import io.circe.parser._
 import io.circe.syntax._
 import org.scalatest.{FreeSpec, Matchers}
 import Encoding._
+import io.circe.{Encoder, Json}
 
 object CfExpTest {
   case class TestResource(logicalId: String, foo: CfExp[String]) extends Resource {
     override def fqn: String = "AWS::Test::TestResource"
+    override def jsonEncode: Json =
+      Json.obj(
+        logicalId -> Json.obj(
+          "Type" -> Json.fromString(fqn),
+          "Properties" -> Json.obj("foo" -> foo.asJson)
+        )
+      )
   }
+
+  implicit val enc = Encoder.instance[TestResource](_.jsonEncode)
 }
 
 import com.timeout.scalacloudformation.CfExpTest._
