@@ -9,5 +9,7 @@ package object scalacloudformation {
     def jsonEncode: Json
   }
 
+  trait ResourceProperty
+
   case class Tag(key: String, value: String)
 }

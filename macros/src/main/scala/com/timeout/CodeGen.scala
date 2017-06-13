@@ -47,7 +47,7 @@ class CodeGen(conf: CodeGen.Config) {
 
         val properties = prop.properties.map(mkField(_, None))
 
-        q"case class $className (..$properties)"
+        q"case class $className (..$properties) extends ResourceProperty"
       }
       val objDefs = props.map { prop =>
         val objName = Term.Name(prop.name)
