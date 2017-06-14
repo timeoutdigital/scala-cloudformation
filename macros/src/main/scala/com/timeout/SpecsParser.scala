@@ -86,7 +86,7 @@ object SpecsParser {
         case List(namespace, name) =>
           c.get[List[Property]]("Properties")(decodeProperties(namespace)).map { props =>
             Some(PropertyType(namespace, name, props))
-          }
+          }.orElse(Right(None))
         case List("Tag") =>
           Right(None)
       }
@@ -114,11 +114,14 @@ object SpecsParser {
 
   private val string = Source.fromInputStream(stream).mkString
 
-  val resourceTypes: List[ResourceType] = parser.decode[List[ResourceType]](string).valueOr(err =>
-    throw new Exception(s"Failed while parsing the cloud formation specs: $err"))
+  def resourceTypes(excludePrefixes: Set[String] = Set.empty): List[ResourceType] =
+    parser.decode[List[ResourceType]](string).valueOr(err =>
+      throw new Exception(s"Failed while parsing the cloud formation specs: $err")
+    ).filterNot(rt => excludePrefixes.exists(rt.fqn.startsWith))
 
-  val propertyTypes: Map[Namespace, List[PropertyType]] =
+  def propertyTypes(excludePrefixes: Set[String] = Set.empty): Map[Namespace, List[PropertyType]] =
     parser.decode[List[PropertyType]](string)
       .valueOr(err => throw new Exception(s"Failed while parsing the cloud formation specs: $err"))
       .groupBy(_.namespace)
+      .filterNot { case (ns, _) => excludePrefixes.exists(ns.startsWith) }
 }
