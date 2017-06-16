@@ -9,19 +9,21 @@ trait CfExp[+T]
 object CfExp {
   type E[+T] = CfExp[T]
 
-  sealed trait Lit[+T] extends E[T] {
-    def value: T
+  trait IsLit[A]
+
+  object IsLit {
+    implicit val stringLit = new IsLit[String] {}
+    implicit val IntLit = new IsLit[Int] {}
+    implicit val longLit = new IsLit[Long] {}
+    implicit val doubleLit = new IsLit[Double] {}
+    implicit val boolLit = new IsLit[Boolean] {}
+    implicit val dateTimeLit = new IsLit[ZonedDateTime] {}
+    implicit val jsonLit = new IsLit[Json] {}
+    implicit def propertyLit[T <: ResourceProperty] = new IsLit[T] {}
+    implicit def listLit[A: IsLit] = new IsLit[List[A]]{}
   }
 
-  case class LitString(value: String) extends Lit[String]
-  case class LitLong(value: Long) extends Lit[Long]
-  case class LitInteger(value: Int) extends Lit[Int]
-  case class LitDouble(value: Double) extends Lit[Double]
-  case class LitBoolean(value: Boolean) extends Lit[Boolean]
-  case class LitTimestamp(value: ZonedDateTime) extends Lit[ZonedDateTime]
-  case class LitJson(value: Json) extends Lit[Json]
-  case class PropertyF[F[_], T <: ResourceProperty](value: F[T]) extends E[F[T]]
-  case class Property[T <: ResourceProperty](value: T) extends E[T]
+  case class Lit[T: IsLit](value: T) extends E[T]
 
   /** The return value for ref depends on the resource
     * All these return types could be typed better (e.g. IP address VS URL)

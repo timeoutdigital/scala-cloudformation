@@ -40,7 +40,7 @@ class CfExpTest extends FreeSpec with Matchers {
     val expJson = parse(exp)
 
     val actual = TestResource(
-      logicalId = "Logical ID", foo = LitString("bar")
+      logicalId = "Logical ID", foo = Lit("bar")
     ).asJson
 
     Right(actual) should ===(expJson)
@@ -61,7 +61,7 @@ class CfExpTest extends FreeSpec with Matchers {
     val expJson = parse(exp)
 
     val actual = TestResource(
-      logicalId = "Logical ID", foo = FnBase64(LitString("bar"))
+      logicalId = "Logical ID", foo = FnBase64(Lit("bar"))
     ).asJson
 
     Right(actual) should ===(expJson)
@@ -110,15 +110,15 @@ class CfExpTest extends FreeSpec with Matchers {
       logicalId = "Logical ID", foo = FnIf(
         FnEquals(
           FnAnd(
-            LitBoolean(true),
+            Lit(true),
             FnNot(
-              LitBoolean(true)
+              Lit(true)
             )
           ),
-          FnOr(LitBoolean(true), LitBoolean(false))
+          FnOr(Lit(true), Lit(false))
         ),
-        LitString("a"),
-        LitString("b")
+        Lit("a"),
+        Lit("b")
       )
     ).asJson
 
@@ -126,7 +126,7 @@ class CfExpTest extends FreeSpec with Matchers {
   }
 
   "Resource Ref is handled" in {
-    val resource = TestResource("referenced", LitString("foo"))
+    val resource = TestResource("referenced", Lit("foo"))
 
     val actual = TestResource("ID", ResourceRef(resource)).asJson
 

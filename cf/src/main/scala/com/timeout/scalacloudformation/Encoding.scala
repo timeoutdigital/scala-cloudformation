@@ -19,20 +19,6 @@ object Encoding {
       )
     }
 
-  implicit def encodeCfPropertyF[F[_], T <: ResourceProperty](
-    implicit
-    ev: Encoder[F[T]]
-  ): Encoder[CfExp[F[T]]] = Encoder.instance[CfExp[F[T]]] {
-    case PropertyF(e) => e.asJson
-    case x => throw new Exception(s"Unexpected expression $x. Expected PropertyF")
-  }
-
-  implicit def encodeCfProperty[T <: ResourceProperty : Encoder]: Encoder[CfExp[T]] =
-    Encoder.instance[CfExp[T]] {
-      case Property(e) => e.asJson
-      case x => throw new Exception(s"Unexpected expression $x. Expected Property")
-  }
-
   implicit def encodeLit[T: Encoder]: Encoder[Lit[T]] =
     implicitly[Encoder[T]].contramap[Lit[T]](_.value)
 
