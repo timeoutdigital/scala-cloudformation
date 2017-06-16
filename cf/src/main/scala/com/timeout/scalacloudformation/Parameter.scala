@@ -28,13 +28,15 @@ object Parameter {
 import Parameter._
 
 sealed trait Parameter[A] {
+  def logicalId: String
   def Type: DataType
   def Description: Option[String]
   def NoEcho: Boolean
   def Default: Option[A]
 }
 
-case class StringParam(MaxLength: Option[Int] = None,
+case class StringParam(logicalId: String,
+                       MaxLength: Option[Int] = None,
                        MinLength: Option[Int] = None,
                        Description: Option[String] = None,
                        NoEcho: Boolean = false,
@@ -44,7 +46,8 @@ case class StringParam(MaxLength: Option[Int] = None,
   override def Type: DataType = DataType.String
 }
 
-case class NumberParam[T: Numeric](MaxValue: Option[T] = None,
+case class NumberParam[T: Numeric](logicalId: String,
+                                   MaxValue: Option[T] = None,
                                    MinValue: Option[T] = None,
                                    Description: Option[String] = None,
                                    NoEcho: Boolean = false,
@@ -52,7 +55,8 @@ case class NumberParam[T: Numeric](MaxValue: Option[T] = None,
   override val Type = DataType.Number
 }
 
-case class CommaDelimited(AllowedValues: Option[Set[String]] = None,
+case class CommaDelimited(logicalId: String,
+                          AllowedValues: Option[Set[String]] = None,
                           Description: Option[String] = None,
                           NoEcho: Boolean = false,
                           DefaultValues: Option[Set[String]]) extends Parameter[String] {
@@ -60,14 +64,16 @@ case class CommaDelimited(AllowedValues: Option[Set[String]] = None,
   override def Default = DefaultValues.map(_.mkString(","))
 }
 
-case class AwsType(awsType: Parameter.AwsType,
+case class AwsType(logicalId: String,
+                   awsType: Parameter.AwsType,
                    Description: Option[String] = None,
                    NoEcho: Boolean = false,
                    Default: Option[String]) extends Parameter[String] {
   override def Type = DataType.AwsType(awsType)
 }
 
-case class AwsListType(awsType: Parameter.AwsType,
+case class AwsListType(logicalId: String,
+                       awsType: Parameter.AwsType,
                        Description: Option[String] = None,
                        NoEcho: Boolean = false,
                        Default: Option[String]) extends Parameter[String] {

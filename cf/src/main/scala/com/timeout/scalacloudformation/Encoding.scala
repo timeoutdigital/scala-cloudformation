@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter
 import com.timeout.scalacloudformation.CfExp._
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
+import scala.reflect.runtime.{universe => ru}
+
 
 object Encoding {
   implicit val encodeZonedDateTime: Encoder[ZonedDateTime] =
@@ -47,4 +49,38 @@ object Encoding {
     case x =>
       throw new Exception(s"Unexpected expression $x")
   }
+
+  implicit def encodeDataType(implicit tag: ru.WeakTypeTag[Parameter.DataType])
+    : Encoder[Parameter.DataType] = {
+    ???
+  }
+
+  implicit def encodeParam[T: Encoder](p: Parameter[T]): Encoder[Parameter[T]] =
+    Encoder.instance[Parameter[T]] { p =>
+      val common = Json.obj(
+        "Type" -> p.Type.asJson,
+        "Default" -> p.Default.asJson,
+        "Description" -> p.Description.asJson,
+        "NoEcho" -> p.NoEcho.asJson
+      )
+
+      val specific = p match {
+        case sp: StringParam =>
+          Json.obj(
+            "MaxLength" -> sp.MaxLength.asJson,
+            "MinLength" -> sp.MinLength.asJson,
+            "AllowedPattern" -> sp.AllowedPattern.asJson,
+            "AllowedValues" -> sp.AllowedValues.asJson
+          )
+        case np: NumberParam[T @unchecked] =>
+          Json.obj(
+            "MaxValue" -> np.MaxValue.asJson,
+            "MinValue" -> np.MinValue.asJson
+          )
+        case _ => Json.obj()
+      }
+
+      common.deepMerge(specific)
+    }
+
 }
