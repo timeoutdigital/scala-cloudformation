@@ -12,15 +12,15 @@ object CfExp {
   trait IsLit[A]
 
   object IsLit {
-    implicit val stringLit = new IsLit[String] {}
-    implicit val IntLit = new IsLit[Int] {}
-    implicit val longLit = new IsLit[Long] {}
-    implicit val doubleLit = new IsLit[Double] {}
-    implicit val boolLit = new IsLit[Boolean] {}
-    implicit val dateTimeLit = new IsLit[ZonedDateTime] {}
-    implicit val jsonLit = new IsLit[Json] {}
-    implicit def propertyLit[T <: ResourceProperty] = new IsLit[T] {}
-    implicit def listLit[A: IsLit] = new IsLit[List[A]]{}
+    implicit val stringLit: IsLit[String] = new IsLit[String] {}
+    implicit val IntLit: IsLit[Int] = new IsLit[Int] {}
+    implicit val longLit: IsLit[Long] = new IsLit[Long] {}
+    implicit val doubleLit: IsLit[Double] = new IsLit[Double] {}
+    implicit val boolLit: IsLit[Boolean] = new IsLit[Boolean] {}
+    implicit val dateTimeLit: IsLit[ZonedDateTime] = new IsLit[ZonedDateTime] {}
+    implicit val jsonLit: IsLit[Json] = new IsLit[Json] {}
+    implicit def propertyLit[T <: ResourceProperty]: IsLit[T] = new IsLit[T] {}
+    implicit def listLit[A: IsLit]: IsLit[List[A]] = new IsLit[List[A]]{}
   }
 
   case class Lit[T: IsLit](value: T) extends E[T]

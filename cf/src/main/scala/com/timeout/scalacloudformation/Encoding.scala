@@ -4,10 +4,10 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import com.timeout.scalacloudformation.CfExp._
+import com.timeout.scalacloudformation.Parameter.CommaDelimited
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
-import scala.reflect.runtime.{universe => ru}
-
+import enum.Enum
 
 object Encoding {
   implicit val encodeZonedDateTime: Encoder[ZonedDateTime] =
@@ -50,12 +50,30 @@ object Encoding {
       throw new Exception(s"Unexpected expression $x")
   }
 
-  implicit def encodeDataType(implicit tag: ru.WeakTypeTag[Parameter.DataType])
-    : Encoder[Parameter.DataType] = {
-    ???
+  implicit def encodeEnum[T: Enum]
+    : Encoder[T] = Encoder.instance[T] { t =>
+    Json.fromString(implicitly[Enum[T]].encode(t))
   }
 
-  implicit def encodeParam[T: Encoder](p: Parameter[T]): Encoder[Parameter[T]] =
+  implicit val encodeParamDataType: Encoder[Parameter.DataType] = {
+    import Parameter.DataType._
+    val awsEnum = implicitly[Enum[Parameter.AwsType]]
+
+    Encoder.instance[Parameter.DataType] { dt =>
+      val s = dt match {
+        case String => "String"
+        case Number => "Number"
+        case `List<Number>` => "List<Number>"
+        case CommaDelimitedList => "CommaDelimitedList"
+        case t: AwsListType => s"List<${awsEnum.encode(t.tpe)}>"
+        case t: AwsType => awsEnum.encode(t.tpe)
+      }
+      Json.fromString(s)
+    }
+  }
+
+  implicit def encodeParam[T](implicit lit: Encoder[T])
+    : Encoder[Parameter[T]] =
     Encoder.instance[Parameter[T]] { p =>
       val common = Json.obj(
         "Type" -> p.Type.asJson,
@@ -65,22 +83,27 @@ object Encoding {
       )
 
       val specific = p match {
-        case sp: StringParam =>
+        case sp: Parameter.Str =>
           Json.obj(
             "MaxLength" -> sp.MaxLength.asJson,
             "MinLength" -> sp.MinLength.asJson,
             "AllowedPattern" -> sp.AllowedPattern.asJson,
             "AllowedValues" -> sp.AllowedValues.asJson
           )
-        case np: NumberParam[T @unchecked] =>
+        case np: Parameter.Number[T @unchecked] =>
           Json.obj(
             "MaxValue" -> np.MaxValue.asJson,
             "MinValue" -> np.MinValue.asJson
           )
+        case p: CommaDelimited =>
+          Json.obj(
+            "AllowedValues" -> p.AllowedValues.map(_.mkString(",")).asJson,
+            "Default" -> p.Default.map(_.mkString(",")).asJson
+          )
         case _ => Json.obj()
       }
 
-      common.deepMerge(specific)
+      Json.obj(p.logicalId -> common.deepMerge(specific))
     }
 
 }
