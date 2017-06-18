@@ -17,7 +17,7 @@ class ParameterTest extends FreeSpec {
   }
 
   "Parameter.Str" in {
-    val param: Parameter[String] = Parameter.Str(
+    val param: Parameter = Parameter.Str(
       logicalId = "DBPwd",
       NoEcho = Some(true),
       MinLength = Some(1),
@@ -43,7 +43,7 @@ class ParameterTest extends FreeSpec {
     )
   }
   "Parameter.Number" in {
-    val param: Parameter[Int] = Parameter.Number[Int](
+    val param: Parameter = Parameter.Number(
       logicalId = "DBPort",
       Default = Some(4329),
       Description = Some("TCP/IP port for the database"),
@@ -64,9 +64,8 @@ class ParameterTest extends FreeSpec {
       """.stripMargin))
   }
 
-
   "Parameter.CommaDelimited" in {
-    val param: Parameter[Set[String]] = Parameter.CommaDelimited(
+    val param: Parameter = Parameter.CommaDelimited(
       logicalId = "UserRoles",
       AllowedValues = Some(Set("guest","newhire","employee")),
       Default = Some(Set("guest", "newhire"))
@@ -85,7 +84,7 @@ class ParameterTest extends FreeSpec {
   }
 
   "Parameter.AwsList" in {
-     val param: Parameter[String] = Parameter.AwsList(
+     val param: Parameter = Parameter.AwsList(
       logicalId = "SubnetIds",
       Description = Some("Subnet ids"),
       awsType = Parameter.AwsType.`AWS::EC2::Subnet::Id`
@@ -103,20 +102,23 @@ class ParameterTest extends FreeSpec {
   }
 
   "Parameter.Aws" in {
-     val param: Parameter[String] = Parameter.Aws(
+    val param: Parameter = Parameter.Aws(
       logicalId = "userKeys",
       Description = Some("Amazon EC2 Key Pair"),
       awsType = Parameter.AwsType.`AWS::EC2::KeyPair::KeyName`
     )
 
     dropNullKeys(param.asJson) should ===(
-      json("""
+      json(
+        """
              |  {
              |    "userKeys" : {
              |      "Type": "AWS::EC2::KeyPair::KeyName",
              |      "Description": "Amazon EC2 Key Pair"
              |    }
              |   }
-      """.stripMargin))
-  }
+      """.
+
+          stripMargin))
+    }
 }

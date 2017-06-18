@@ -1,12 +1,11 @@
 package com.timeout.scalacloudformation
 import enum.Enum
 
-sealed trait Parameter[+A] {
+sealed trait Parameter {
   def logicalId: String
   def Type: Parameter.DataType
   def Description: Option[String]
   def NoEcho: Option[Boolean]
-  def Default: Option[A]
 }
 
 object Parameter {
@@ -44,16 +43,16 @@ object Parameter {
                  NoEcho: Option[Boolean] = None,
                  AllowedValues: Option[Set[String]] = None,
                  AllowedPattern: Option[String] = None,
-                 Default: Option[String] = None) extends Parameter[String] {
+                 Default: Option[String] = None) extends Parameter {
     override def Type: DataType = DataType.String
   }
 
-  case class Number[T: Numeric](logicalId: String,
-                               MaxValue: Option[T] = None,
-                               MinValue: Option[T] = None,
-                               Description: Option[String] = None,
-                               NoEcho: Option[Boolean] = None,
-                               Default: Option[T] = None) extends Parameter[T] {
+  case class Number(logicalId: String,
+                    MaxValue: Option[Double] = None,
+                    MinValue: Option[Double] = None,
+                    Description: Option[String] = None,
+                    NoEcho: Option[Boolean] = None,
+                    Default: Option[Double] = None) extends Parameter {
     override val Type = DataType.Number
   }
 
@@ -61,7 +60,7 @@ object Parameter {
                             AllowedValues: Option[Set[String]] = None,
                             Description: Option[String] = None,
                             NoEcho: Option[Boolean] = None,
-                            Default: Option[Set[String]] = None) extends Parameter[Set[String]] {
+                            Default: Option[Set[String]] = None) extends Parameter {
     override val Type = DataType.CommaDelimitedList
   }
 
@@ -69,7 +68,7 @@ object Parameter {
                  awsType: Parameter.AwsType,
                  Description: Option[String] = None,
                  NoEcho: Option[Boolean] = None,
-                 Default: Option[String] = None) extends Parameter[String] {
+                 Default: Option[String] = None) extends Parameter {
     override def Type = DataType.AwsType(awsType)
   }
 
@@ -77,7 +76,7 @@ object Parameter {
                      awsType: Parameter.AwsType,
                      Description: Option[String] = None,
                      NoEcho: Option[Boolean] = None,
-                     Default: Option[String] = None) extends Parameter[String] {
+                     Default: Option[String] = None) extends Parameter {
     override def Type = DataType.AwsListType(awsType)
   }
 }

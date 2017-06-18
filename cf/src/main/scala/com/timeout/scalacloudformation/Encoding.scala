@@ -72,12 +72,10 @@ object Encoding {
     }
   }
 
-  implicit def encodeParam[T](implicit lit: Encoder[T])
-    : Encoder[Parameter[T]] =
-    Encoder.instance[Parameter[T]] { p =>
+  implicit val encodeParam: Encoder[Parameter] =
+    Encoder.instance[Parameter] { p =>
       val common = Json.obj(
         "Type" -> p.Type.asJson,
-        "Default" -> p.Default.asJson,
         "Description" -> p.Description.asJson,
         "NoEcho" -> p.NoEcho.asJson
       )
@@ -88,12 +86,14 @@ object Encoding {
             "MaxLength" -> sp.MaxLength.asJson,
             "MinLength" -> sp.MinLength.asJson,
             "AllowedPattern" -> sp.AllowedPattern.asJson,
-            "AllowedValues" -> sp.AllowedValues.asJson
+            "AllowedValues" -> sp.AllowedValues.asJson,
+            "Default" -> sp.Default.asJson
           )
-        case np: Parameter.Number[T @unchecked] =>
+        case np: Parameter.Number =>
           Json.obj(
             "MaxValue" -> np.MaxValue.asJson,
-            "MinValue" -> np.MinValue.asJson
+            "MinValue" -> np.MinValue.asJson,
+            "Default" -> np.Default.asJson
           )
         case p: CommaDelimited =>
           Json.obj(
