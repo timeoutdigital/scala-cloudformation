@@ -12,4 +12,8 @@ package object scalacloudformation {
   trait ResourceProperty
 
   case class Tag(key: String, value: String)
+
+  trait HasLogicalId {
+    def logicalId: String
+  }
 }

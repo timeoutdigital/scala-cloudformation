@@ -1,7 +1,7 @@
 package com.timeout.scalacloudformation
 import enum.Enum
 
-sealed trait Parameter {
+sealed trait Parameter extends HasLogicalId {
   def logicalId: String
   def Type: Parameter.DataType
   def Description: Option[String]
