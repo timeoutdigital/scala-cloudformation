@@ -6,10 +6,16 @@ import java.time.format.DateTimeFormatter
 import com.timeout.scalacloudformation.CfExp._
 import com.timeout.scalacloudformation.Parameter.CommaDelimited
 import io.circe.syntax._
+import io.circe.generic.semiauto.deriveEncoder
 import io.circe.{Encoder, Json}
 import enum.Enum
 
+import java.time.Duration
+
 object Encoding {
+  implicit final val encodeDuration: Encoder[Duration] =
+    Encoder.instance(duration => Json.fromString(duration.toString))
+
   implicit val encodeZonedDateTime: Encoder[ZonedDateTime] =
     implicitly[Encoder[String]].contramap[ZonedDateTime](_.format(DateTimeFormatter.ISO_ZONED_DATE_TIME))
 
@@ -106,4 +112,7 @@ object Encoding {
       Json.obj(p.logicalId -> common.deepMerge(specific))
     }
 
+  implicit val autoscalingPolicy: Encoder[AutoscalingCreationPolicy] = deriveEncoder[AutoscalingCreationPolicy]
+  implicit val resourceSignal: Encoder[ResourceSignal] = deriveEncoder[ResourceSignal]
+  implicit val creationPolicy: Encoder[CreationPolicy] = deriveEncoder[CreationPolicy]
 }

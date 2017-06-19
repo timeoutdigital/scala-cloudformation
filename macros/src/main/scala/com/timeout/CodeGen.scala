@@ -75,10 +75,24 @@ class CodeGen(conf: CodeGen.Config) {
     SpecsParser.resourceTypes(conf.excludePrefixes).map { rt =>
       val normalized = normalize(rt.fqn)
       val typeName = Type.Name(normalized)
-
       val namespace = normalize(rt.fqn.takeWhile(_ != "."))
+
       val logicalIdProp: Term.Param = param"logicalId: String"
-      val properties = logicalIdProp :: rt.properties.map(mkField(_, Some(namespace)))
+      val dependsOn: Term.Param = param"DependsOn: Option[CfExp[String]] = None"
+      val metaData: Term.Param = param"Metadata: Option[CfExp[Json]] = None"
+      val deletionPolicy: Term.Param = param"DeletionPolicy: Option[CfExp[DeletionPolicy]] = None"
+      val creationPolicy: Term.Param = param"CreationPolicy: Option[CfExp[CreationPolicy]] = None"
+      val updatePolicy: Term.Param = param"UpdatePolicy: Option[CfExp[List[UpdatePolicy]]] = None"
+
+      val commonProps_ =
+        logicalIdProp :: metaData :: dependsOn :: creationPolicy :: deletionPolicy :: Nil
+
+      val commonProps = if (rt.fqn == "AWS::AutoScaling::AutoScalingGroup")
+        commonProps_ ++ List(updatePolicy)
+      else
+        commonProps_
+
+      val properties = commonProps ++ rt.properties.map(mkField(_, Some(namespace)))
       val fqn = Term.Name("\"" + rt.fqn + "\"")
 
       val jsonFields = rt.properties.map { prop =>

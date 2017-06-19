@@ -1,6 +1,6 @@
 package com.timeout.scalacloudformation
 
-import java.time.ZonedDateTime
+import java.time.{Duration, ZonedDateTime}
 
 import io.circe.Json
 
@@ -19,6 +19,7 @@ object CfExp {
     implicit val boolLit: IsLit[Boolean] = new IsLit[Boolean] {}
     implicit val dateTimeLit: IsLit[ZonedDateTime] = new IsLit[ZonedDateTime] {}
     implicit val jsonLit: IsLit[Json] = new IsLit[Json] {}
+    implicit val durationLit: IsLit[Duration] = new IsLit[Duration] {}
     implicit def propertyLit[T <: ResourceProperty]: IsLit[T] = new IsLit[T] {}
     implicit def listLit[A: IsLit]: IsLit[List[A]] = new IsLit[List[A]]{}
   }
