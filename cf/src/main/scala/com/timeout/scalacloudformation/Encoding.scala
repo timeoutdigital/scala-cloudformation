@@ -9,7 +9,6 @@ import io.circe.syntax._
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.{Encoder, Json}
 import enum.Enum
-
 import java.time.Duration
 
 object Encoding {
@@ -78,6 +77,27 @@ object Encoding {
     }
   }
 
+  implicit val autoscalingPolicy: Encoder[AutoscalingCreationPolicy] =
+    deriveEncoder[AutoscalingCreationPolicy]
+
+  implicit val resourceSignal: Encoder[ResourceSignal] =
+    deriveEncoder[ResourceSignal]
+
+  implicit val creationPolicy: Encoder[CreationPolicy] =
+    deriveEncoder[CreationPolicy]
+
+  implicit val autoScalingReplacingUpdate: Encoder[AutoScalingReplacingUpdate] =
+    deriveEncoder[AutoScalingReplacingUpdate]
+
+  implicit val autoScalingRollingUpdate: Encoder[AutoScalingRollingUpdate] =
+    deriveEncoder[AutoScalingRollingUpdate]
+
+  implicit val autoScalingScheduledAction: Encoder[AutoScalingScheduledAction] =
+    deriveEncoder[AutoScalingScheduledAction]
+
+  implicit val updatePolicy: Encoder[UpdatePolicy] =
+    deriveEncoder[UpdatePolicy]
+
   implicit val encodeParam: Encoder[Parameter] =
     Encoder.instance[Parameter] { p =>
       val common = Json.obj(
@@ -112,7 +132,33 @@ object Encoding {
       Json.obj(p.logicalId -> common.deepMerge(specific))
     }
 
-  implicit val autoscalingPolicy: Encoder[AutoscalingCreationPolicy] = deriveEncoder[AutoscalingCreationPolicy]
-  implicit val resourceSignal: Encoder[ResourceSignal] = deriveEncoder[ResourceSignal]
-  implicit val creationPolicy: Encoder[CreationPolicy] = deriveEncoder[CreationPolicy]
+  implicit val condition: Encoder[Condition] = deriveEncoder[Condition]
+
+  implicit val output: Encoder[Output] = Encoder.instance { o =>
+    Json.obj(o.logicalId -> Json.obj(
+      "Description" -> o.Description.asJson,
+      "Value" -> o.Value.asJson,
+      "Condition" -> o.Condition.map(_.logicalId).asJson,
+      "Export" -> o.Export.asJson //TODO: support cross-stack output
+    ))
+
+  }
+
+  private def fold[A: Encoder](objects: List[A]): Json =
+    objects.foldLeft(Json.obj()) { case (o, item) =>
+      o.deepMerge(item.asJson)
+    }
+
+  implicit val template: Encoder[Template] = Encoder.instance { t =>
+    Json.obj(
+      "AWSTemplateFormatVersion" -> Json.fromString("2010-09-09"),
+      "Description" -> t.Description.asJson,
+      "Metadata" -> t.Metadata.asJson,
+      "Parameters" -> fold(t.Parameters),
+      "Mappings" -> t.Mappings.asJson,
+      "Conditions" -> fold(t.Conditions),
+      "Resources" -> fold(t.Resources.map(_.jsonEncode)),
+      "Outputs" -> fold(t.Outputs)
+    )
+  }
 }

@@ -79,13 +79,12 @@ class CodeGen(conf: CodeGen.Config) {
 
       val logicalIdProp: Term.Param = param"logicalId: String"
       val dependsOn: Term.Param = param"DependsOn: Option[CfExp[String]] = None"
-      val metaData: Term.Param = param"Metadata: Option[CfExp[Json]] = None"
       val deletionPolicy: Term.Param = param"DeletionPolicy: Option[CfExp[DeletionPolicy]] = None"
       val creationPolicy: Term.Param = param"CreationPolicy: Option[CfExp[CreationPolicy]] = None"
       val updatePolicy: Term.Param = param"UpdatePolicy: Option[CfExp[List[UpdatePolicy]]] = None"
 
       val commonProps_ =
-        logicalIdProp :: metaData :: dependsOn :: creationPolicy :: deletionPolicy :: Nil
+        logicalIdProp :: dependsOn :: creationPolicy :: deletionPolicy :: Nil
 
       val commonProps = if (rt.fqn == "AWS::AutoScaling::AutoScalingGroup")
         commonProps_ ++ List(updatePolicy)
