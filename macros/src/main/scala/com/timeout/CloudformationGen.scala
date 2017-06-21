@@ -10,7 +10,7 @@ class CloudformationGen extends scala.annotation.StaticAnnotation {
 
     defn match {
       case q"object $_ {..$_}" =>
-        q"..${gen.objectStats ++ gen.classStats}"
+        q"..${gen.classStats ++ gen.objectStats}"
       case _ =>
         abort("@CloudformationGen must be used on an object")
     }

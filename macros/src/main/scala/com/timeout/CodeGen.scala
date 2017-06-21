@@ -47,15 +47,26 @@ class CodeGen(conf: CodeGen.Config) {
 
         val properties = prop.properties.map(mkField(_, None))
 
-        q"case class $className (..$properties)"
+        q"case class $className (..$properties) extends ResourceProperty"
+      }
+      val objDefs = props.map { prop =>
+        val objName = Term.Name(prop.name)
+        val typeName = Type.Name(prop.name)
+
+        q"""object $objName {
+              implicit val encoder: Encoder[$typeName] = deriveEncoder[$typeName]
+            }
+        """
       }
 
-      val generic =
-        q"implicit val generic = LabelledGeneric[$typeName]"
+      val encoder =
+        q"implicit val encoder = Encoder.instance[$typeName](_.jsonEncode)"
+
+      val classObjDefs = intersperse[Stat](classDefs, objDefs)
 
       q"""object $objectName {
-            ..$classDefs
-            $generic
+            ..$classObjDefs
+            $encoder
          }
        """
     }
@@ -64,14 +75,38 @@ class CodeGen(conf: CodeGen.Config) {
     SpecsParser.resourceTypes(conf.excludePrefixes).map { rt =>
       val normalized = normalize(rt.fqn)
       val typeName = Type.Name(normalized)
-
       val namespace = normalize(rt.fqn.takeWhile(_ != "."))
+
       val logicalIdProp: Term.Param = param"logicalId: String"
-      val properties = logicalIdProp :: rt.properties.map(mkField(_, Some(namespace)))
+      val dependsOn: Term.Param = param"DependsOn: Option[Resource] = None"
+      val deletionPolicy: Term.Param = param"DeletionPolicy: Option[DeletionPolicy] = None"
+      val creationPolicy: Term.Param = param"CreationPolicy: Option[CreationPolicy] = None"
+      val updatePolicy: Term.Param = param"UpdatePolicy: Option[UpdatePolicy] = None"
+
+      val commonProps =
+        logicalIdProp :: dependsOn :: creationPolicy :: deletionPolicy :: updatePolicy :: Nil
+
+      val properties = commonProps ++ rt.properties.map(mkField(_, Some(namespace)))
       val fqn = Term.Name("\"" + rt.fqn + "\"")
 
-      val declaration = q"""case class $typeName (..$properties) extends Resource {
-            override def fqn: String = $fqn
+      val jsonFields = rt.properties.map { prop =>
+        q"${Lit(prop.name)} -> ${Term.Name(prop.name)}.asJson"
+      }
+
+      val declaration = q"""
+         case class $typeName (..$properties) extends Resource {
+           override def fqn: String = $fqn
+           override def jsonEncode: io.circe.Json =
+             Json.obj(
+               logicalId -> Json.obj(
+                 "Type" -> Json.fromString(fqn),
+                 "DependsOn" -> DependsOn.map(_.logicalId).asJson,
+                 "UpdatePolicy" -> UpdatePolicy.asJson,
+                 "DeletionPolicy" -> DeletionPolicy.asJson,
+                 "CreationPolicy" -> CreationPolicy.asJson,
+                 "Properties" -> Json.obj(..$jsonFields)
+               )
+             )
          }
        """
 
@@ -80,13 +115,17 @@ class CodeGen(conf: CodeGen.Config) {
 
   private def mkField(property: Property, namespace: Option[Namespace]): Term.Param = {
     val paramName = Term.Name(property.name)
-
     val typeName = mapAwsType(namespace)(property.awsType)
 
     if (property.required) {
       param"$paramName: CfExp[$typeName]"
     } else {
-      param"$paramName: Option[CfExp[$typeName]]"
+      param"$paramName: Option[CfExp[$typeName]] = None"
     }
+  }
+
+  private def intersperse[A](a : List[A], b : List[A]): List[A] = a match {
+    case first :: rest => first :: intersperse(b, rest)
+    case _ => b
   }
 }

@@ -1,16 +1,30 @@
 package com.timeout.scalacloudformation
 
-import com.timeout.scalacloudformation.AWSResources.{CfExp, Resource}
 import com.timeout.scalacloudformation.CfExp._
 import io.circe.parser._
 import io.circe.syntax._
 import org.scalatest.{FreeSpec, Matchers}
 import Encoding._
+import io.circe.{Encoder, Json}
 
 object CfExpTest {
   case class TestResource(logicalId: String, foo: CfExp[String]) extends Resource {
     override def fqn: String = "AWS::Test::TestResource"
+    override def jsonEncode: Json =
+      Json.obj(
+        logicalId -> Json.obj(
+          "Type" -> Json.fromString(fqn),
+          "Properties" -> Json.obj("foo" -> foo.asJson)
+        )
+      )
+
+    override val DependsOn = None
+    override val UpdatePolicy = None
+    override val DeletionPolicy = None
+    override val CreationPolicy = None
   }
+
+  implicit val enc = Encoder.instance[TestResource](_.jsonEncode)
 }
 
 import com.timeout.scalacloudformation.CfExpTest._
@@ -31,7 +45,7 @@ class CfExpTest extends FreeSpec with Matchers {
     val expJson = parse(exp)
 
     val actual = TestResource(
-      logicalId = "Logical ID", foo = LitString("bar")
+      logicalId = "Logical ID", foo = Lit("bar")
     ).asJson
 
     Right(actual) should ===(expJson)
@@ -52,7 +66,7 @@ class CfExpTest extends FreeSpec with Matchers {
     val expJson = parse(exp)
 
     val actual = TestResource(
-      logicalId = "Logical ID", foo = FnBase64(LitString("bar"))
+      logicalId = "Logical ID", foo = FnBase64(Lit("bar"))
     ).asJson
 
     Right(actual) should ===(expJson)
@@ -101,15 +115,15 @@ class CfExpTest extends FreeSpec with Matchers {
       logicalId = "Logical ID", foo = FnIf(
         FnEquals(
           FnAnd(
-            LitBoolean(true),
+            Lit(true),
             FnNot(
-              LitBoolean(true)
+              Lit(true)
             )
           ),
-          FnOr(LitBoolean(true), LitBoolean(false))
+          FnOr(Lit(true), Lit(false))
         ),
-        LitString("a"),
-        LitString("b")
+        Lit("a"),
+        Lit("b")
       )
     ).asJson
 
@@ -117,7 +131,7 @@ class CfExpTest extends FreeSpec with Matchers {
   }
 
   "Resource Ref is handled" in {
-    val resource = TestResource("referenced", LitString("foo"))
+    val resource = TestResource("referenced", Lit("foo"))
 
     val actual = TestResource("ID", ResourceRef(resource)).asJson
 
