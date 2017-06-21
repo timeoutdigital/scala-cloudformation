@@ -10,6 +10,7 @@ import io.circe.generic.semiauto.deriveEncoder
 import io.circe.{Encoder, Json}
 import enum.Enum
 import java.time.Duration
+import ResourceAttributes._
 
 object Encoding {
   implicit final val encodeDuration: Encoder[Duration] =
@@ -49,6 +50,8 @@ object Encoding {
       Json.obj("Fn::Or" -> conds.asJson)
     case ResourceRef(resource) =>
       Json.obj("Ref" -> Json.fromString(resource.logicalId))
+    case ParameterRef(resource) =>
+      Json.obj("Ref" -> Json.fromString(resource.logicalId))
     case PseudoParameterRef(param) =>
       Json.obj("Ref" -> Json.fromString(param.toString))
     case x =>
@@ -70,7 +73,7 @@ object Encoding {
         case Number => "Number"
         case `List<Number>` => "List<Number>"
         case CommaDelimitedList => "CommaDelimitedList"
-        case t: AwsListType => s"List<${awsEnum.encode(t.tpe)}>"
+        case t: AwsTypeList => s"List<${awsEnum.encode(t.tpe)}>"
         case t: AwsType => awsEnum.encode(t.tpe)
       }
       Json.fromString(s)
@@ -112,10 +115,17 @@ object Encoding {
             "MaxLength" -> sp.MaxLength.asJson,
             "MinLength" -> sp.MinLength.asJson,
             "AllowedPattern" -> sp.AllowedPattern.asJson,
+            "ConstraintDescription" -> sp.ConstraintDescription.asJson,
             "AllowedValues" -> sp.AllowedValues.asJson,
             "Default" -> sp.Default.asJson
           )
-        case np: Parameter.Number =>
+        case np: Parameter.Integer =>
+          Json.obj(
+            "MaxValue" -> np.MaxValue.asJson,
+            "MinValue" -> np.MinValue.asJson,
+            "Default" -> np.Default.asJson
+          )
+        case np: Parameter.Double =>
           Json.obj(
             "MaxValue" -> np.MaxValue.asJson,
             "MinValue" -> np.MinValue.asJson,
@@ -139,7 +149,9 @@ object Encoding {
       "Description" -> o.Description.asJson,
       "Value" -> o.Value.asJson,
       "Condition" -> o.Condition.map(_.logicalId).asJson,
-      "Export" -> o.Export.asJson //TODO: support cross-stack output
+      "Export" -> Json.obj(
+        "Name" -> o.Export.asJson
+      )
     ))
 
   }

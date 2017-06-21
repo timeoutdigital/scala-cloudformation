@@ -6,12 +6,13 @@ sealed trait Parameter extends HasLogicalId {
   def Type: Parameter.DataType
   def Description: Option[String]
   def NoEcho: Option[Boolean]
+  def ConstraintDescription: Option[String]
 }
 
 object Parameter {
   sealed trait AwsType
+
   object AwsType {
-    case object `AWS::EC2::Instance` extends AwsType
     case object `AWS::EC2::AvailabilityZone::Name` extends AwsType
     case object `AWS::EC2::Instance::Id` extends AwsType
     case object `AWS::EC2::Image::Id` extends AwsType
@@ -33,7 +34,7 @@ object Parameter {
     case object `List<Number>` extends DataType
     case object CommaDelimitedList extends DataType
     case class AwsType(tpe: Parameter.AwsType) extends DataType
-    case class AwsListType(tpe: Parameter.AwsType) extends DataType
+    case class AwsTypeList(tpe: Parameter.AwsType) extends DataType
   }
 
   case class Str(logicalId: String,
@@ -43,16 +44,27 @@ object Parameter {
                  NoEcho: Option[Boolean] = None,
                  AllowedValues: Option[Set[String]] = None,
                  AllowedPattern: Option[String] = None,
-                 Default: Option[String] = None) extends Parameter {
+                 Default: Option[String] = None,
+                 ConstraintDescription: Option[String] = None) extends Parameter {
     override def Type: DataType = DataType.String
   }
 
-  case class Number(logicalId: String,
-                    MaxValue: Option[Double] = None,
-                    MinValue: Option[Double] = None,
+  case class Double(logicalId: String,
+                    MaxValue: Option[scala.Double] = None,
+                    MinValue: Option[scala.Double] = None,
                     Description: Option[String] = None,
                     NoEcho: Option[Boolean] = None,
-                    Default: Option[Double] = None) extends Parameter {
+                    Default: Option[scala.Double] = None,
+                    ConstraintDescription: Option[String] = None) extends Parameter {
+    override val Type = DataType.Number
+  }
+  case class Integer(logicalId: String,
+                    MaxValue: Option[Int] = None,
+                    MinValue: Option[Int] = None,
+                    Description: Option[String] = None,
+                    NoEcho: Option[Boolean] = None,
+                    Default: Option[Int] = None,
+                    ConstraintDescription: Option[String] = None) extends Parameter {
     override val Type = DataType.Number
   }
 
@@ -60,7 +72,8 @@ object Parameter {
                             AllowedValues: Option[Set[String]] = None,
                             Description: Option[String] = None,
                             NoEcho: Option[Boolean] = None,
-                            Default: Option[Set[String]] = None) extends Parameter {
+                            Default: Option[Set[String]] = None,
+                            ConstraintDescription: Option[String] = None) extends Parameter {
     override val Type = DataType.CommaDelimitedList
   }
 
@@ -68,7 +81,8 @@ object Parameter {
                  awsType: Parameter.AwsType,
                  Description: Option[String] = None,
                  NoEcho: Option[Boolean] = None,
-                 Default: Option[String] = None) extends Parameter {
+                 Default: Option[String] = None,
+                 ConstraintDescription: Option[String] = None) extends Parameter {
     override def Type = DataType.AwsType(awsType)
   }
 
@@ -76,7 +90,8 @@ object Parameter {
                      awsType: Parameter.AwsType,
                      Description: Option[String] = None,
                      NoEcho: Option[Boolean] = None,
-                     Default: Option[String] = None) extends Parameter {
-    override def Type = DataType.AwsListType(awsType)
+                     Default: Option[String] = None,
+                     ConstraintDescription: Option[String] = None) extends Parameter {
+    override def Type = DataType.AwsTypeList(awsType)
   }
 }

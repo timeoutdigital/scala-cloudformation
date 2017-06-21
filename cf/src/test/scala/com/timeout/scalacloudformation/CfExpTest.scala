@@ -17,6 +17,11 @@ object CfExpTest {
           "Properties" -> Json.obj("foo" -> foo.asJson)
         )
       )
+
+    override val DependsOn = None
+    override val UpdatePolicy = None
+    override val DeletionPolicy = None
+    override val CreationPolicy = None
   }
 
   implicit val enc = Encoder.instance[TestResource](_.jsonEncode)

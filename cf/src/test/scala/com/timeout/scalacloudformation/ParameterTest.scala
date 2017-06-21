@@ -42,8 +42,8 @@ class ParameterTest extends FreeSpec {
 
     )
   }
-  "Parameter.Number" in {
-    val param: Parameter = Parameter.Number(
+  "Parameter.Integer" in {
+    val param: Parameter = Parameter.Integer(
       logicalId = "DBPort",
       Default = Some(4329),
       Description = Some("TCP/IP port for the database"),

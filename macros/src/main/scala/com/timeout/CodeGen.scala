@@ -78,18 +78,13 @@ class CodeGen(conf: CodeGen.Config) {
       val namespace = normalize(rt.fqn.takeWhile(_ != "."))
 
       val logicalIdProp: Term.Param = param"logicalId: String"
-      val dependsOn: Term.Param = param"DependsOn: Option[CfExp[String]] = None"
-      val deletionPolicy: Term.Param = param"DeletionPolicy: Option[CfExp[DeletionPolicy]] = None"
-      val creationPolicy: Term.Param = param"CreationPolicy: Option[CfExp[CreationPolicy]] = None"
-      val updatePolicy: Term.Param = param"UpdatePolicy: Option[CfExp[List[UpdatePolicy]]] = None"
+      val dependsOn: Term.Param = param"DependsOn: Option[Resource] = None"
+      val deletionPolicy: Term.Param = param"DeletionPolicy: Option[DeletionPolicy] = None"
+      val creationPolicy: Term.Param = param"CreationPolicy: Option[CreationPolicy] = None"
+      val updatePolicy: Term.Param = param"UpdatePolicy: Option[UpdatePolicy] = None"
 
-      val commonProps_ =
-        logicalIdProp :: dependsOn :: creationPolicy :: deletionPolicy :: Nil
-
-      val commonProps = if (rt.fqn == "AWS::AutoScaling::AutoScalingGroup")
-        commonProps_ ++ List(updatePolicy)
-      else
-        commonProps_
+      val commonProps =
+        logicalIdProp :: dependsOn :: creationPolicy :: deletionPolicy :: updatePolicy :: Nil
 
       val properties = commonProps ++ rt.properties.map(mkField(_, Some(namespace)))
       val fqn = Term.Name("\"" + rt.fqn + "\"")
@@ -105,6 +100,10 @@ class CodeGen(conf: CodeGen.Config) {
              Json.obj(
                logicalId -> Json.obj(
                  "Type" -> Json.fromString(fqn),
+                 "DependsOn" -> DependsOn.map(_.logicalId).asJson,
+                 "UpdatePolicy" -> UpdatePolicy.asJson,
+                 "DeletionPolicy" -> DeletionPolicy.asJson,
+                 "CreationPolicy" -> CreationPolicy.asJson,
                  "Properties" -> Json.obj(..$jsonFields)
                )
              )

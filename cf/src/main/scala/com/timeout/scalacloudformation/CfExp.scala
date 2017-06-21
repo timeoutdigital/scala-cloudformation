@@ -32,6 +32,7 @@ object CfExp {
     * For a more refined behaviour, it seems reasonable to use type members instead
     */
   case class ResourceRef(value: Resource) extends E[String]
+  case class ParameterRef(value: Parameter) extends E[String]
   case class PseudoParameterRef(value: PseudoParameter) extends E[String]
 
   case class FnBase64(exp: E[String]) extends E[String]
