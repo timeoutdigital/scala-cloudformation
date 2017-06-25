@@ -1,12 +1,14 @@
 package com.timeout.scalacloudformation
+import com.timeout.scalacloudformation.CfExp.ParameterRef
 import enum.Enum
 
-sealed trait Parameter extends HasLogicalId {
+sealed trait Parameter extends HasLogicalId with HasRef {
   def logicalId: String
   def Type: Parameter.DataType
   def Description: Option[String]
   def NoEcho: Option[Boolean]
   def ConstraintDescription: Option[String]
+  override def ref = ParameterRef(this)
 }
 
 object Parameter {

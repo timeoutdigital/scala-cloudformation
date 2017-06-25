@@ -46,8 +46,20 @@ object Encoding {
       Json.obj("Fn::If" -> Json.fromValues(List(cond.asJson, ifTrue.asJson, ifFalse.asJson)))
     case FnNot(cond) =>
       Json.obj("Fn::Not" -> List(cond).asJson) // weird but correct according to the doc
+    case FnJoin(delimiter, chunks) =>
+      Json.obj("Fn::Join" -> Json.arr(delimiter.asJson, chunks.asJson))
     case FnOr(conds@_*) =>
       Json.obj("Fn::Or" -> conds.asJson)
+    case FnFindInMap(m, key1, key2) =>
+      Json.obj("Fn::FindInMap" -> Json.arr(
+        m.logicalId.asJson,
+        key1.asJson,
+        key2.asJson
+      ))
+    case FnGetAttr(logicalId, attr) =>
+      Json.obj("Fn::GetAtt" -> Json.arr(
+        Json.fromString(logicalId),
+        Json.fromString(attr)))
     case ResourceRef(resource) =>
       Json.obj("Ref" -> Json.fromString(resource.logicalId))
     case ParameterRef(resource) =>
@@ -153,7 +165,10 @@ object Encoding {
         "Name" -> o.Export.asJson
       )
     ))
+  }
 
+  implicit val mapping: Encoder[Template.Mapping] = Encoder.instance { o =>
+    Json.obj(o.logicalId -> o.value.asJson)
   }
 
   private def fold[A: Encoder](objects: List[A]): Json =
@@ -167,7 +182,7 @@ object Encoding {
       "Description" -> t.Description.asJson,
       "Metadata" -> t.Metadata.asJson,
       "Parameters" -> fold(t.Parameters),
-      "Mappings" -> t.Mappings.asJson,
+      "Mappings" -> fold(t.Mappings),
       "Conditions" -> fold(t.Conditions),
       "Resources" -> fold(t.Resources.map(_.jsonEncode)),
       "Outputs" -> fold(t.Outputs)

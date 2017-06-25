@@ -12,6 +12,10 @@ package object scalacloudformation {
     def logicalId: String
   }
 
+  trait HasRef {
+    def ref: CfExp[String]
+  }
+
   object ResourceAttributes {
     case class ResourceSignal(Count: CfExp[Int],
                               Timeout: CfExp[Duration])
@@ -43,9 +47,7 @@ package object scalacloudformation {
                             AutoScalingScheduledAction: Option[AutoScalingScheduledAction] = None) extends ResourceProperty
   }
 
-
-
-  trait Resource extends HasLogicalId {
+  trait Resource extends HasLogicalId with HasRef {
     def fqn: String
     def logicalId: String
     def DependsOn: Option[Resource]
@@ -53,6 +55,8 @@ package object scalacloudformation {
     def DeletionPolicy: Option[ResourceAttributes.DeletionPolicy]
     def CreationPolicy: Option[ResourceAttributes.CreationPolicy]
     def jsonEncode: Json
+
+    override def ref = CfExp.ResourceRef(this)
   }
 
   case class Tag(key: String, value: String)

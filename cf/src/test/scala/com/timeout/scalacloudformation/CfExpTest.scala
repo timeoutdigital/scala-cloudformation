@@ -130,6 +130,35 @@ class CfExpTest extends FreeSpec with Matchers {
     Right(actual) should ===(expJson)
   }
 
+  "Join function is handled" in {
+    val tuple: (CfExp[String], CfExp[String], CfExp[Int]) = (
+      PseudoParameter.AccountId.ref, PseudoParameter.StackName.ref, Lit(1)
+    )
+
+    val actual = TestResource(
+      logicalId = "ID", foo = FnJoin.build("/", tuple)
+    ).asJson
+
+    val expJson = parse(
+      """
+        |{
+        |  "ID" : {
+        |    "Type" : "AWS::Test::TestResource",
+        |    "Properties" : {
+        |      "foo" : {
+        |        "Fn::Join" : ["/", [
+        |          {"Ref": "AWS::AccountId"},
+        |          {"Ref": "AWS::StackName"},
+        |          1]
+        |        ]
+        |      }
+        |    }
+        |  }
+        |}
+      """.stripMargin)
+    Right(actual) should ===(expJson)
+  }
+
   "Resource Ref is handled" in {
     val resource = TestResource("referenced", Lit("foo"))
 

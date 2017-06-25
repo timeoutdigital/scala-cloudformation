@@ -1,7 +1,10 @@
 package com.timeout.scalacloudformation
 
-trait PseudoParameter {
+import com.timeout.scalacloudformation.CfExp.PseudoParameterRef
+
+trait PseudoParameter extends HasRef {
   def toString: String
+  override def ref= PseudoParameterRef(this)
 }
 
 object PseudoParameter {

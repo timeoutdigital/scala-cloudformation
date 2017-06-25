@@ -2,14 +2,19 @@ package com.timeout.scalacloudformation
 
 import java.time.{Duration, ZonedDateTime}
 
-import io.circe.Json
+import com.timeout.scalacloudformation.Template.Mapping
+import io.circe.{Encoder, Json}
+import io.circe.syntax._
 
 trait CfExp[+T]
-
 object CfExp {
   type E[+T] = CfExp[T]
 
   trait IsLit[A]
+
+  trait Ref[T] {
+    def value: T
+  }
 
   object IsLit {
     implicit val stringLit: IsLit[String] = new IsLit[String] {}
@@ -31,9 +36,9 @@ object CfExp {
     * but they are all treated as String.
     * For a more refined behaviour, it seems reasonable to use type members instead
     */
-  case class ResourceRef(value: Resource) extends E[String]
-  case class ParameterRef(value: Parameter) extends E[String]
-  case class PseudoParameterRef(value: PseudoParameter) extends E[String]
+  case class ResourceRef(value: Resource) extends Ref[Resource] with E[String]
+  case class ParameterRef(value: Parameter) extends Ref[Parameter] with E[String]
+  case class PseudoParameterRef(value: PseudoParameter) extends Ref[PseudoParameter] with E[String]
 
   case class FnBase64(exp: E[String]) extends E[String]
 
@@ -42,4 +47,36 @@ object CfExp {
   case class FnIf[T](cond: E[Boolean], ifTrue: E[T], ifFalse: E[T]) extends E[T]
   case class FnNot(cond: E[Boolean]) extends E[Boolean]
   case class FnOr(conds: E[Boolean]*) extends E[Boolean]
+
+  case class FnGetAttr(logicalId: String,
+                       attributeName: String) extends E[String]
+
+  object FnGetAttr {
+    def apply(resource: Resource,
+              attributeName: String): FnGetAttr = FnGetAttr(resource.logicalId, attributeName)
+  }
+
+  case class FnFindInMap(mapName: Mapping,
+                         topLevelKey: String,
+                         secondLevelKey: String) extends E[String]
+
+  case class FnJoin private[scalacloudformation](delimiter: String, values: List[Json]) extends E[String]
+
+  object FnJoin {
+    import shapeless._
+    import shapeless.ops.hlist._
+    import Encoding._
+
+    object encodeExp extends Poly1 {
+      implicit def exp2Json[A: Encoder : IsLit] = at[CfExp[A]](_.asJson)
+    }
+
+    def build[T <: Product, L1 <: HList, L2 <: HList](separator: String, tuple: T)(
+      implicit
+      gen: Generic.Aux[T, L1],
+      mapper: Mapper.Aux[encodeExp.type, L1, L2],
+      traversable: ToTraversable.Aux[L2, List, Json])
+    : CfExp[String] =
+      FnJoin(separator, gen.to(tuple).map(encodeExp).toList)
+  }
 }
