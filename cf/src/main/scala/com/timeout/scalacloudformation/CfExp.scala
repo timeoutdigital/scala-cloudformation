@@ -5,12 +5,13 @@ import java.time.{Duration, ZonedDateTime}
 import com.timeout.scalacloudformation.Template.Mapping
 import io.circe.{Encoder, Json}
 import io.circe.syntax._
+import shapeless.Witness
 
 trait CfExp[+T]
 object CfExp {
   type E[+T] = CfExp[T]
 
-  trait IsLit[A]
+  trait IsLit[T]
 
   trait Ref[T] {
     def value: T
@@ -48,19 +49,23 @@ object CfExp {
   case class FnNot(cond: E[Boolean]) extends E[Boolean]
   case class FnOr(conds: E[Boolean]*) extends E[Boolean]
 
-  case class FnGetAttr(logicalId: String,
-                       attributeName: String) extends E[String]
+  case class FnGetAttr private [scalacloudformation](logicalId: String,
+                                                     attributeName: String) extends E[String]
 
   object FnGetAttr {
-    def apply(resource: Resource,
-              attributeName: String): FnGetAttr = FnGetAttr(resource.logicalId, attributeName)
+    def unsafe(v: HasLogicalId, attributeName: String) = FnGetAttr(v.logicalId, attributeName)
+
+    def apply[R <: Resource](resource: R, w: Witness)
+                            (implicit hasGetAtt: HasGetAtt[R, w.T]): FnGetAttr =
+      FnGetAttr(resource.logicalId, hasGetAtt.attributeName)
   }
 
   case class FnFindInMap(mapName: Mapping,
-                         topLevelKey: String,
-                         secondLevelKey: String) extends E[String]
+                         topLevelKey: CfExp[String],
+                         secondLevelKey: CfExp[String]) extends E[String]
 
-  case class FnJoin private[scalacloudformation](delimiter: String, values: List[Json]) extends E[String]
+  case class FnJoin private[scalacloudformation](delimiter: String,
+                                                 values: List[Json]) extends E[String]
 
   object FnJoin {
     import shapeless._
@@ -71,7 +76,7 @@ object CfExp {
       implicit def exp2Json[A: Encoder : IsLit] = at[CfExp[A]](_.asJson)
     }
 
-    def build[T <: Product, L1 <: HList, L2 <: HList](separator: String, tuple: T)(
+    def apply[T <: Product, L1 <: HList, L2 <: HList](separator: String, tuple: T)(
       implicit
       gen: Generic.Aux[T, L1],
       mapper: Mapper.Aux[encodeExp.type, L1, L2],

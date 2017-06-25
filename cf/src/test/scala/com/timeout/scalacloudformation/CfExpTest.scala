@@ -130,13 +130,42 @@ class CfExpTest extends FreeSpec with Matchers {
     Right(actual) should ===(expJson)
   }
 
+  "FindInMap function is handled" in {
+    val m = Template.Mapping(
+      "mapping", Map("eu-west-1" -> Map("X" -> "value"))
+    )
+
+    val actual = TestResource(
+      logicalId = "ID", foo = FnFindInMap(m, PseudoParameter.Region.ref, Lit("X"))
+    ).asJson
+
+    val expJson = parse(
+      """
+        |{
+        |  "ID" : {
+        |    "Type" : "AWS::Test::TestResource",
+        |    "Properties" : {
+        |      "foo" : {
+        |        "Fn::FindInMap" : [
+        |          "mapping",
+        |          {"Ref": "AWS::Region"},
+        |          "X"
+        |        ]
+        |      }
+        |    }
+        |  }
+        |}
+      """.stripMargin)
+    Right(actual) should ===(expJson)
+  }
+
   "Join function is handled" in {
-    val tuple: (CfExp[String], CfExp[String], CfExp[Int]) = (
+     val tuple: (CfExp[String], CfExp[String], CfExp[Int]) = (
       PseudoParameter.AccountId.ref, PseudoParameter.StackName.ref, Lit(1)
     )
 
     val actual = TestResource(
-      logicalId = "ID", foo = FnJoin.build("/", tuple)
+      logicalId = "ID", foo = FnJoin("/", tuple)
     ).asJson
 
     val expJson = parse(
@@ -156,7 +185,6 @@ class CfExpTest extends FreeSpec with Matchers {
         |  }
         |}
       """.stripMargin)
-    Right(actual) should ===(expJson)
   }
 
   "Resource Ref is handled" in {

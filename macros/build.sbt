@@ -1,7 +1,8 @@
 val circeVersion = "0.8.0"
 
 libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-reflect" % scalaVersion.value
+  "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+  "com.nrinaudo" %% "kantan.csv" % "0.1.19"
 )++ Seq(
   "io.circe" %% "circe-core",
   "io.circe" %% "circe-generic",

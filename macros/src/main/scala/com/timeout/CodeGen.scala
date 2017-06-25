@@ -1,6 +1,7 @@
 package com.timeout
 
 import scala.meta._
+import com.timeout.scalacloudformation.HasGetAtt
 
 object CodeGen {
   case class Config(excludePrefixes: Set[String] = Set.empty)
@@ -36,19 +37,23 @@ class CodeGen(conf: CodeGen.Config) {
   def normalize(str: String): String =
     str.filter(_.isLetterOrDigit)
 
+  private val resourceTypesByFqn =
+    SpecsParser.resourceTypes(conf.excludePrefixes).map(r => r.fqn -> r).toMap
+
+  private val propertyTypesByFqn =
+    SpecsParser.propertyTypes(conf.excludePrefixes)
+
   // Contains custom properties and generic derivations
-  val objectStats: List[Defn.Object] =
-    SpecsParser.propertyTypes(conf.excludePrefixes).toList.map { case (namespace, props) =>
+  val objectStats: List[Defn.Object] = propertyTypesByFqn.toList.map { case (namespace, props) =>
       val objectName = Term.Name(normalize(namespace))
       val typeName = Type.Name(normalize(namespace))
 
       val classDefs = props.map { prop =>
         val className = Type.Name(prop.name)
-
         val properties = prop.properties.map(mkField(_, None))
-
         q"case class $className (..$properties) extends ResourceProperty"
       }
+
       val objDefs = props.map { prop =>
         val objName = Term.Name(prop.name)
         val typeName = Type.Name(prop.name)
@@ -58,6 +63,10 @@ class CodeGen(conf: CodeGen.Config) {
             }
         """
       }
+      val getAttInstances =
+        GetAttSupport.attributesByResourceType
+          .get(namespace).map(mkGetAttInstance)
+          .getOrElse(Nil)
 
       val encoder =
         q"implicit val encoder = Encoder.instance[$typeName](_.jsonEncode)"
@@ -67,12 +76,13 @@ class CodeGen(conf: CodeGen.Config) {
       q"""object $objectName {
             ..$classObjDefs
             $encoder
+            ..$getAttInstances
          }
        """
     }
 
   val classStats: List[Defn] =
-    SpecsParser.resourceTypes(conf.excludePrefixes).map { rt =>
+    resourceTypesByFqn.values.toList.map { rt =>
       val normalized = normalize(rt.fqn)
       val typeName = Type.Name(normalized)
       val namespace = normalize(rt.fqn.takeWhile(_ != "."))
@@ -111,6 +121,15 @@ class CodeGen(conf: CodeGen.Config) {
        """
 
       declaration
+    }
+
+  private def mkGetAttInstance(attr: GetAttSupport.Attribute): List[Stat] =
+    attr.attributes.map { name =>
+      val normalisedName = name.replace(".", "Dot")
+      val valName = Pat.Var.Term(Term.Name(s"attr$normalisedName"))
+      val attrName = Lit(normalisedName)
+      val typeName = Type.Name(normalize(attr.resourceTypeFqn))
+      q"""implicit val $valName = HasGetAtt.mk[$typeName]($attrName)"""
     }
 
   private def mkField(property: Property, namespace: Option[Namespace]): Term.Param = {
