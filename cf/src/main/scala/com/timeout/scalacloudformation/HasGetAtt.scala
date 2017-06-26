@@ -9,7 +9,6 @@ trait HasGetAtt[R <: Resource, T] {
 }
 
 object HasGetAtt {
-
   def mk[R <: Resource](w: Witness.Lt[String]): HasGetAtt[R, w.T] = new HasGetAtt[R, w.T] {
     override val attributeName = w.value
   }

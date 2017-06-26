@@ -1,42 +1,12 @@
 package com.timeout
 
 import scala.meta._
-import com.timeout.scalacloudformation.HasGetAtt
 
 object CodeGen {
   case class Config(excludePrefixes: Set[String] = Set.empty)
 }
 
 class CodeGen(conf: CodeGen.Config) {
-  def mapPrimitiveType(primitiveType: PrimitiveType): Type.Name = primitiveType match {
-    case PrimitiveType.String => Type.Name("String")
-    case PrimitiveType.Long => Type.Name("Long")
-    case PrimitiveType.Integer => Type.Name("Int")
-    case PrimitiveType.Double => Type.Name("Double")
-    case PrimitiveType.Boolean => Type.Name("Boolean")
-    case PrimitiveType.Timestamp => Type.Name("java.time.ZonedDateTime")
-    case PrimitiveType.Json => Type.Name("io.circe.Json")
-  }
-
-  def mapAwsType(namespace: Option[Namespace])(awsType: AwsType): Type = awsType match {
-    case p: PrimitiveType =>
-      mapPrimitiveType(p)
-    case TagType =>
-      Type.Name("Tag")
-    case PropertyTypeRef(_, name) =>
-      val fqn = namespace.fold(name) { ns: String => s"$ns.$name" }
-      Type.Name(fqn)
-    case ListType(itemType) =>
-      val typeName = mapAwsType(namespace)(itemType)
-      t"List[$typeName]"
-    case MapType(itemType) =>
-      val typeName = mapAwsType(namespace)(itemType)
-      t"Map[String, $typeName]"
-  }
-
-  def normalize(str: String): String =
-    str.filter(_.isLetterOrDigit)
-
   private val resourceTypesByFqn =
     SpecsParser.resourceTypes(conf.excludePrefixes).map(r => r.fqn -> r).toMap
 
@@ -50,7 +20,7 @@ class CodeGen(conf: CodeGen.Config) {
 
       val classDefs = props.map { prop =>
         val className = Type.Name(prop.name)
-        val properties = prop.properties.map(mkField(_, None))
+        val properties = prop.properties.sortBy(_.required)(Ordering.Boolean.reverse).map(mkField(_, None))
         q"case class $className (..$properties) extends ResourceProperty"
       }
 
@@ -137,11 +107,41 @@ class CodeGen(conf: CodeGen.Config) {
     val typeName = mapAwsType(namespace)(property.awsType)
 
     if (property.required) {
-      param"$paramName: CfExp[$typeName]"
+      param"$paramName: $typeName"
     } else {
-      param"$paramName: Option[CfExp[$typeName]] = None"
+      param"$paramName: Option[$typeName] = None"
     }
   }
+
+  def mapPrimitiveType(primitiveType: PrimitiveType): Type.Name = primitiveType match {
+    case PrimitiveType.String => Type.Name("String")
+    case PrimitiveType.Long => Type.Name("Long")
+    case PrimitiveType.Integer => Type.Name("Int")
+    case PrimitiveType.Double => Type.Name("Double")
+    case PrimitiveType.Boolean => Type.Name("Boolean")
+    case PrimitiveType.Timestamp => Type.Name("java.time.ZonedDateTime")
+    case PrimitiveType.Json => Type.Name("io.circe.Json")
+  }
+
+  def mapAwsType(namespace: Option[Namespace])(awsType: AwsType): Type = awsType match {
+    case p: PrimitiveType =>
+      t"CfExp[${mapPrimitiveType(p)}]"
+    case TagType =>
+      t"CfExp[Tag]"
+    case PropertyTypeRef(_, name) =>
+      val fqn = namespace.fold(name) { ns: String => s"$ns.$name" }
+      Type.Name(fqn)
+    case ListType(itemType) =>
+      val typeName = mapAwsType(namespace)(itemType)
+      t"List[$typeName]"
+    case MapType(itemType) =>
+      val typeName = mapAwsType(namespace)(itemType)
+      t"Map[String, $typeName]"
+  }
+
+  def normalize(str: String): String =
+    str.filter(_.isLetterOrDigit)
+
 
   private def intersperse[A](a : List[A], b : List[A]): List[A] = a match {
     case first :: rest => first :: intersperse(b, rest)
